@@ -12,14 +12,14 @@ defmodule Servy.Handler do
   def log(conv), do: IO.inspect(conv)
 
   def track(%{status: 404, path: path} = conv) do
-    IO.puts "Warning: #{path} is on the loose!"
+    IO.puts("Warning: #{path} is on the loose!")
     conv
   end
 
   def track(conv), do: conv
 
   def rewrite_path(%{path: "/wildlife"} = conv) do
-    %{ conv | path: "/wildthings" }
+    %{conv | path: "/wildthings"}
   end
 
   def rewrite_path(conv), do: conv
@@ -47,8 +47,39 @@ defmodule Servy.Handler do
     %{conv | status: 200, resp_body: "Teddy, Smokey, Paddington"}
   end
 
+  def route(%{method: "GET", path: "/bears/new"} = conv) do
+    handle_page("form.html", conv)
+  end
+
   def route(%{method: "GET", path: "/bears/" <> id} = conv) do
-    %{ conv | status: 200, resp_body: "Bear #{id}"}
+    %{conv | status: 200, resp_body: "Bear #{id}"}
+  end
+
+  def route(%{method: "GET", path: "/about"} = conv) do
+    handle_page("about.html", conv)
+  end
+
+  def route(%{method: "GET", path: "/pages/" <> file} = conv) do
+    handle_page(file, conv)
+  end
+
+  def handle_page(page, conv) do
+    Path.expand("../../pages", __DIR__)
+    |> Path.join(page)
+    |> File.read()
+    |> handle_file(conv)
+  end
+
+  def handle_file({:ok, content}, conv) do
+    %{conv | status: 200, resp_body: content}
+  end
+
+  def handle_file({:error, :enoent}, conv) do
+    %{conv | status: 404, resp_body: "File not found!"}
+  end
+
+  def handle_file({:error, reason}, conv) do
+    %{conv | status: 500, resp_body: "File error: #{reason}"}
   end
 
   def route(%{path: path} = conv) do
@@ -115,6 +146,42 @@ IO.puts(response)
 
 request = """
 GET /wildlife HTTP/1.1
+Host: example.com
+User-Agent: ExampleBrowser/1.0
+Accept: */*
+
+"""
+
+response = Servy.Handler.handle(request)
+
+IO.puts(response)
+
+request = """
+GET /about HTTP/1.1
+Host: example.com
+User-Agent: ExampleBrowser/1.0
+Accept: */*
+
+"""
+
+response = Servy.Handler.handle(request)
+
+IO.puts(response)
+
+request = """
+GET /bears/new HTTP/1.1
+Host: example.com
+User-Agent: ExampleBrowser/1.0
+Accept: */*
+
+"""
+
+response = Servy.Handler.handle(request)
+
+IO.puts(response)
+
+request = """
+GET /pages/contact.html HTTP/1.1
 Host: example.com
 User-Agent: ExampleBrowser/1.0
 Accept: */*
