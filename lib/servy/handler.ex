@@ -3,6 +3,7 @@ defmodule Servy.Handler do
     Handles HTTP requests.
   """
 
+  alias Servy.BearController
   alias Servy.Conv
 
   @pages_path Path.expand("../../pages", __DIR__)
@@ -28,7 +29,7 @@ defmodule Servy.Handler do
   end
 
   def route(%Conv{method: "GET", path: "/bears"} = conv) do
-    %{conv | status: 200, resp_body: "Teddy, Smokey, Paddington"}
+    BearController.index(conv)
   end
 
   def route(%Conv{method: "GET", path: "/bears/new"} = conv) do
@@ -37,15 +38,12 @@ defmodule Servy.Handler do
 
   # name-Baloo&type=Brown
   def route(%Conv{method: "POST", path: "/bears"} = conv) do
-    %{
-      conv
-      | status: 201,
-        resp_body: "Created a #{conv.params["type"]} bear named #{conv.params["name"]}"
-    }
+    BearController.create(conv, conv.params)
   end
 
   def route(%Conv{method: "GET", path: "/bears/" <> id} = conv) do
-    %{conv | status: 200, resp_body: "Bear #{id}"}
+    params = Map.put(conv.params, "id", id)
+    BearController.show(conv, params)
   end
 
   def route(%Conv{method: "GET", path: "/about"} = conv) do
@@ -54,6 +52,10 @@ defmodule Servy.Handler do
 
   def route(%Conv{method: "GET", path: "/pages/" <> file} = conv) do
     handle_page(file, conv)
+  end
+
+  def route(%{path: path} = conv) do
+    %{conv | status: 404, resp_body: "No #{path} here!"}
   end
 
   def handle_page(page, conv) do
@@ -75,10 +77,6 @@ defmodule Servy.Handler do
     %{conv | status: 500, resp_body: "File error: #{reason}"}
   end
 
-  def route(%{path: path} = conv) do
-    %{conv | status: 404, resp_body: "No #{path} here!"}
-  end
-
   def format_response(%Conv{} = conv) do
     """
     HTTP/1.1 #{Conv.full_status(conv)}
@@ -92,6 +90,18 @@ end
 
 request = """
 GET /wildthings HTTP/1.1
+Host: example.com
+User-Agent: ExampleBrowser/1.0
+Accept: */*
+
+"""
+
+response = Servy.Handler.handle(request)
+
+IO.puts(response)
+
+request = """
+GET /bears HTTP/1.1
 Host: example.com
 User-Agent: ExampleBrowser/1.0
 Accept: */*
