@@ -9,6 +9,25 @@ defmodule Servy.Plugins do
     conv
   end
 
+  def put_resp_content_type(conv, content_type) do
+    headers = Map.put(conv.resp_headers, "Content-Type", content_type)
+    %{conv | resp_headers: headers}
+  end
+
+  def put_content_length(conv) do
+    headers = Map.put(conv.resp_headers, "Content-Length", byte_size(conv.resp_body))
+    %{conv | resp_headers: headers}
+  end
+
+  def format_resp_headers(conv) do
+    for {key, value} <- conv.resp_headers do
+      "#{key}: #{value}\r"
+    end
+    |> Enum.sort()
+    |> Enum.reverse()
+    |> Enum.join("\n")
+  end
+
   @doc """
     Logs 404 requests
   """
