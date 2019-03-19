@@ -4,6 +4,8 @@ defmodule Servy.Handler do
   """
 
   alias Servy.BearController
+  alias Servy.VideoCam
+  alias Servy.Tracker
   alias Servy.Conv
 
   @pages_path Path.expand("../../pages", __DIR__)
@@ -20,11 +22,41 @@ defmodule Servy.Handler do
     request
     |> parse
     |> rewrite_path
-    |> log
+    # |> log
     |> route
     |> track
     |> put_content_length
     |> format_response
+  end
+
+  def route(%Conv{method: "GET", path: "/snapshots"} = conv) do
+    # the request handling process
+    snapshots =
+      ["iko", "sage", "boo"]
+      |> Enum.map(&Task.async(fn -> VideoCam.get_snapshot(&1) end))
+      |> Enum.map(&Task.await/1)
+
+    %{conv | status: 200, resp_body: inspect(snapshots)}
+  end
+
+  def route(%Conv{method: "GET", path: "/sensors"} = conv) do
+    # the request handling process
+
+    sensors =
+      ["roscoe", "smokey", "brutus"]
+      |> Enum.map(&Task.async(fn -> Tracker.get_location(&1) end))
+      |> Enum.map(&Task.await/1)
+
+    %{conv | status: 200, resp_body: inspect(sensors)}
+  end
+
+  def route(%Conv{method: "GET", path: "/kaboom"} = conv) do
+    raise "Kaboom!"
+  end
+
+  def route(%Conv{method: "GET", path: "/hibernate/" <> time} = conv) do
+    time |> String.to_integer() |> :timer.sleep()
+    %{conv | status: 200, resp_body: "Awake!"}
   end
 
   def route(%Conv{method: "GET", path: "/wildthings"} = conv) do
