@@ -48,14 +48,9 @@ defmodule Servy.Handler do
   end
 
   def route(%Conv{method: "GET", path: "/sensors"} = conv) do
-    # the request handling process
+    sensor_data = Servy.SensorServer.get_sensor_data()
 
-    sensors =
-      ["roscoe", "smokey", "brutus"]
-      |> Enum.map(&Task.async(fn -> Tracker.get_location(&1) end))
-      |> Enum.map(&Task.await/1)
-
-    %{conv | status: 200, resp_body: inspect(sensors)}
+    %{conv | status: 200, resp_body: inspect(sensor_data)}
   end
 
   def route(%Conv{method: "GET", path: "/kaboom"} = conv) do
